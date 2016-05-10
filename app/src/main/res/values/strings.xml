@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Car controller</string>
+
+    <string name="title_activity_button_control">ButtonControlActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+
+    <string name="title_activity_gyro_control">GyroControlActivity</string>
+</resources>
