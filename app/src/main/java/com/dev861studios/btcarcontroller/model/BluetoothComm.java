@@ -16,6 +16,10 @@ public class BluetoothComm {
 
     private static BluetoothComm comm;
 
+    private DataOutputStream outputStream;
+
+    private BluetoothSocket socket;
+
     private BluetoothDevice carDevice;
 
     private UUID uuid;
@@ -23,7 +27,14 @@ public class BluetoothComm {
     private BluetoothComm(BluetoothDevice device, UUID uuid){
         carDevice = device;
         this.uuid = uuid;
-        device.fetchUuidsWithSdp();
+        try {
+            socket = carDevice.createRfcommSocketToServiceRecord(uuid);
+            socket.connect();
+            outputStream = new DataOutputStream(socket.getOutputStream());
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("unable to connect");
+        }
     }
 
     public static BluetoothComm createInstance(BluetoothDevice device, UUID uuid){
@@ -37,20 +48,28 @@ public class BluetoothComm {
 
     public void testDrive(){
         try {
-            BluetoothSocket socket = carDevice.createRfcommSocketToServiceRecord(uuid);
-            socket.connect();
-            DataOutputStream stream = new DataOutputStream(socket.getOutputStream());
-            stream.writeBytes("M1E1");
-            stream.flush();
-            stream.writeBytes("M1E0");
-            stream.flush();
-            //stream.close();
-            //socket.close();
+            outputStream.writeBytes("M1E1");
+            outputStream.flush();
+            outputStream.writeBytes("M1E0");
+            outputStream.flush();
             System.out.println("Test drive finished");
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println("unable to connect");
         }
+    }
+
+    public void endCommunication(){
+        try {
+            outputStream.close();
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public CarController getCarController(){
+        return new CarController(outputStream);
     }
 
 }

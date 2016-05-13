@@ -9,6 +9,9 @@ import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.os.Parcel;
+import android.os.ParcelUuid;
+import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -18,6 +21,7 @@ import android.widget.Toast;
 
 import com.dev861studios.btcarcontroller.model.BluetoothComm;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Set;
 import java.util.Timer;
@@ -28,7 +32,8 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String CAR_UUID = "00001101-0000-1000-8000-00805f9b34fb";
 
-    private static final String CAR_MODULE_ADDRESS = "98:D3:31:90:6E:FB";
+   // private static final String CAR_MODULE_ADDRESS = "98:D3:31:90:6E:FB";
+    private static final String CAR_MODULE_ADDRESS = "20:15:07:24:35:91";
 
     private static final int CAR_NOT_FOUND_MESSAGE = 404;
 
@@ -42,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
 
     private BluetoothAdapter bluetoothAdapter;
 
-    BroadcastReceiver searchReceiver, pairReceiver;
+    BroadcastReceiver searchReceiver, pairReceiver, uuidReceiver;
 
     Handler handler;
 
@@ -81,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
                     case CAR_NOT_FOUND_MESSAGE:
                         progressBar.setVisibility(View.GONE);
                         retryBtn.setVisibility(View.VISIBLE);
-                        Toast toast = Toast.makeText(getApplicationContext(), "Car not found, please power on device", Toast.LENGTH_LONG);
+                        Toast toast = Toast.makeText(getApplicationContext(), "CarController not found, please power on device", Toast.LENGTH_LONG);
                         toast.show();
                         break;
                 }
@@ -89,7 +94,11 @@ public class MainActivity extends AppCompatActivity {
         };
 
         if(BluetoothComm.getInstance() == null){
-            connectToCar();
+            new Thread(new Runnable() {
+                public void run() {
+                    connectToCar();
+                }
+            }).start();
         }else{
             showChooseControlButtons();
         }
@@ -98,6 +107,11 @@ public class MainActivity extends AppCompatActivity {
     public void retryButtonClick(View view){
         retryBtn.setVisibility(View.GONE);
         progressBar.setVisibility(View.VISIBLE);
+        new Thread(new Runnable() {
+            public void run() {
+                connectToCar();
+            }
+        }).start();
     }
 
     public void showButtonControl(View view) {
@@ -125,23 +139,16 @@ public class MainActivity extends AppCompatActivity {
 
     // BT Methods
 
+    /**
+     * Handles connection to car
+     */
     public void connectToCar() {
 
-        Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
-        for (BluetoothDevice device : pairedDevices) {
-            if (device.getAddress().equals(CAR_MODULE_ADDRESS)) {
-                bluetoothComm = BluetoothComm.createInstance(device, UUID.fromString(CAR_UUID));
-            }
-        }
-
-        if (bluetoothComm == null) {
-            pairCar();
-        }else{
+        if(bluetoothComm != null) {
             showChooseControlButtons();
+            return;
         }
-    }
 
-    private void pairCar() {
         bluetoothAdapter.startDiscovery();
         Timer timer = new Timer(true);
         timer.schedule(new TimerTask() {
@@ -164,7 +171,14 @@ public class MainActivity extends AppCompatActivity {
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     if (device.getAddress().equals(CAR_MODULE_ADDRESS)) {
                         bluetoothAdapter.cancelDiscovery();
-                        pairDevice(device);
+                        Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+                        if (pairedDevices.contains(device)){
+                            bluetoothComm = BluetoothComm.createInstance(device, UUID.fromString(CAR_UUID));
+                           // bluetoothComm.testDrive();
+                            showChooseControlButtons();
+                        }else{
+                            device.fetchUuidsWithSdp();
+                        }
                     }
                 }
             }
@@ -172,6 +186,26 @@ public class MainActivity extends AppCompatActivity {
 
         IntentFilter actionFoundFilter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(searchReceiver, actionFoundFilter);
+
+        uuidReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                if (BluetoothDevice.ACTION_UUID.equals(action)){
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    Parcelable[] uuidExtra = intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID);
+                    if(device != null && uuidExtra != null) {
+                        System.out.println(device.getAddress() + ": " + uuidExtra[0].toString());
+                        unregisterReceiver(uuidReceiver);
+                        pairDevice(device);
+                    }
+                }
+            }
+        };
+
+
+        IntentFilter actionUid = new IntentFilter(BluetoothDevice.ACTION_UUID);
+        registerReceiver(uuidReceiver, actionUid);
 
         pairReceiver = new BroadcastReceiver() {
             @Override
@@ -190,6 +224,7 @@ public class MainActivity extends AppCompatActivity {
                         BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 
                         bluetoothComm = BluetoothComm.createInstance(device, UUID.fromString(CAR_UUID));
+                        //bluetoothComm.testDrive();
                         showChooseControlButtons();
 
                     } else if (state == BluetoothDevice.BOND_NONE && prevState == BluetoothDevice.BOND_BONDED) {
@@ -225,7 +260,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStop() {
+
+        super.onStop();
+    }
+
+    @Override
     protected void onDestroy() {
+        bluetoothComm.endCommunication();
+        bluetoothComm = null;
+
+        if(uuidReceiver != null){
+            unregisterReceiver(uuidReceiver);
+        }
+
         if(searchReceiver != null){
             unregisterReceiver(searchReceiver);
         }
