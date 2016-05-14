@@ -1,5 +1,9 @@
 package com.dev861studios.btcarcontroller;
 
+import android.app.ProgressDialog;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.MotionEvent;
@@ -20,13 +24,34 @@ public class ButtonControlActivity extends AppCompatActivity {
 
     ImageButton leftBtn, rightBtn, forwardBtn, backwardBtn;
 
+    CarController carController;
+
+    ProgressDialog dialog;
+
+    Handler connectionHandler = new Handler(Looper.getMainLooper()) {
+        @Override
+        public void handleMessage(Message message) {
+            switch (message.what) {
+                case BluetoothComm.CONNECTION_OK:
+                    carController = (CarController) message.obj;
+                    Toast toast = Toast.makeText(getApplicationContext(), "Connection ok", Toast.LENGTH_SHORT);
+                    toast.show();
+                    dialog.cancel();
+                    break;
+            }
+        }
+    };;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_button_control);
 
-        final CarController controller = BluetoothComm.getInstance().getCarController();
+        dialog = ProgressDialog.show(ButtonControlActivity.this, "",
+                "Opening connection ...", true);
+
+        BluetoothComm.getInstance().openCommunication(connectionHandler); // TODO: non-defensive
 
         View.OnTouchListener touchListener = new View.OnTouchListener() {
             @Override
@@ -34,43 +59,34 @@ public class ButtonControlActivity extends AppCompatActivity {
                 try {
                     switch (event.getAction()) {
                         case MotionEvent.ACTION_DOWN:
-                            System.out.println("Pressed down");
                             switch (v.getId()) {
                                 case R.id.left_btn:
-                                    controller.left();
+                                    carController.left();
                                     break;
                                 case R.id.right_btn:
-                                    System.out.println("Right btn");
-                                    controller.right();
+                                    carController.right();
                                     break;
                                 case R.id.forward_btn:
-                                    System.out.println("Forward btn");
-                                    controller.forward();
+                                    carController.forward();
                                     break;
                                 case R.id.backward_btn:
-                                    System.out.println("Backward btn");
-                                    controller.reverse();
+                                    carController.reverse();
                                     break;
                             }
                             break;
                         case MotionEvent.ACTION_UP:
-                            System.out.println("Up");
                             switch (v.getId()) {
                                 case R.id.left_btn:
-                                    System.out.println("Left btn");
-                                    controller.left();
+                                    carController.left();
                                     break;
                                 case R.id.right_btn:
-                                    System.out.println("Right btn");
-                                    controller.right();
+                                    carController.right();
                                     break;
                                 case R.id.forward_btn:
-                                    System.out.println("Forward btn");
-                                    controller.forward();
+                                    carController.forward();
                                     break;
                                 case R.id.backward_btn:
-                                    System.out.println("Backward btn");
-                                    controller.reverse();
+                                    carController.reverse();
                                     break;
                             }
                             break;
@@ -98,10 +114,10 @@ public class ButtonControlActivity extends AppCompatActivity {
 
     }
 
+
     @Override
-    protected void onPostCreate(Bundle savedInstanceState) {
-        super.onPostCreate(savedInstanceState);
+    protected void onDestroy() {
+        BluetoothComm.getInstance().endCommunication();
+        super.onDestroy();
     }
-
-
 }
