@@ -140,6 +140,25 @@ public class CarController {
         }
     }
 
+    public void setSpeed(byte speed) throws IOException {
+        switch (speed){
+            case SPEED_FULL:
+                sendCommand("M0SF");
+                break;
+            case SPEED_HALF:
+                sendCommand("M0SH");
+                break;
+        }
+    }
+
+    /**
+     * General stop
+     * @throws IOException
+     */
+    public void stop() throws IOException{
+        setState(0);
+    }
+
 
     /**
      * Sets state to car
@@ -184,8 +203,6 @@ public class CarController {
 
         beforeState = actualState;
         actualState = state;
-        System.out.println("Actual state: " + actualState);
-        System.out.println("Before state: " + beforeState);
     }
 
     /**

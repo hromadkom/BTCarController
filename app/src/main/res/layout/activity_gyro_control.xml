@@ -47,4 +47,13 @@
         android:id="@+id/textView"
         android:layout_centerVertical="true"
         android:layout_centerHorizontal="true" />
+    <ImageButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_remove_circle_outline_black_24dp"
+        android:background="@color/colorPrimaryDark"
+        android:id="@+id/stopButton"
+        android:onClick="halt"
+        android:layout_above="@+id/imageView2"
+        android:layout_centerHorizontal="true" />
 </RelativeLayout>

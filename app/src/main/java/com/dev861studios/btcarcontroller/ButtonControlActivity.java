@@ -8,6 +8,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
@@ -37,16 +38,24 @@ public class ButtonControlActivity extends AppCompatActivity {
                     Toast toast = Toast.makeText(getApplicationContext(), "Connection ok", Toast.LENGTH_SHORT);
                     toast.show();
                     dialog.cancel();
+                    try {
+                        carController.setSpeed(CarController.SPEED_FULL);
+                    } catch (IOException e) {
+                        toast = Toast.makeText(getApplicationContext(), "Speed setting error", Toast.LENGTH_LONG);
+                        toast.show();
+                    }
                     break;
             }
         }
-    };;
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_button_control);
+
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); // be awake
 
         dialog = ProgressDialog.show(ButtonControlActivity.this, "",
                 "Opening connection ...", true);
@@ -92,8 +101,7 @@ public class ButtonControlActivity extends AppCompatActivity {
                             break;
                     }
                 } catch (IOException e) {
-                    Toast toast = Toast.makeText(getApplicationContext(), "Communication error occured", Toast.LENGTH_LONG);
-                    toast.show();
+
                 }
 
                 return true;
@@ -114,6 +122,14 @@ public class ButtonControlActivity extends AppCompatActivity {
 
     }
 
+    public void halt(View view){
+        try {
+            carController.stop();
+        } catch (IOException e) {
+            Toast toast = Toast.makeText(getApplicationContext(), "Communication error occurred", Toast.LENGTH_LONG);
+            toast.show();
+        }
+    }
 
     @Override
     protected void onDestroy() {

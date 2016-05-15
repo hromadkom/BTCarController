@@ -27,6 +27,8 @@ public class BluetoothComm {
 
     private ConnectedThread connectedThread;
 
+    private BluetoothSocket activeSocket;
+
     private Handler returnHandler;
 
     private BluetoothComm(BluetoothDevice device, UUID uuid) throws IOException {
@@ -59,7 +61,7 @@ public class BluetoothComm {
      */
     public void endCommunication() {
         connectedThread.cancel();
-        connectThread.cancel();
+        //connectThread.cancel();
     }
 
     /**
@@ -69,6 +71,7 @@ public class BluetoothComm {
     public void manageConnectedSocket(BluetoothSocket socket){
         connectedThread = new ConnectedThread(socket);
         connectedThread.start();
+        connectThread = null;
         CarController carController = new CarController(connectedThread);
         returnHandler.obtainMessage(BluetoothComm.CONNECTION_OK, carController).sendToTarget();
     }

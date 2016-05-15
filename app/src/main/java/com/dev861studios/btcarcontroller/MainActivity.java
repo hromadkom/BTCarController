@@ -102,8 +102,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        System.out.println("Resumed");
-
         if(BluetoothComm.getInstance() == null){
             connectToCar();
         }else{
@@ -294,7 +292,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
-        //unregisterReceivers();
         super.onStop();
     }
 
